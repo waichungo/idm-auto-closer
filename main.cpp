@@ -189,12 +189,9 @@ vector<WindowObject> GetIDMWindows()
     }
     return idm_windows;
 }
-void DestroyWindows()
+void CloseWindowHandle(HWND window)
 {
-    for (auto &win : GetIDMWindows())
-    {
-        SendMessage(win.window, WM_CLOSE, 0, 0);
-    }
+    auto res = SendMessageA(window, WM_CLOSE, 0, 0);
 }
 
 int main(int argc, char **argv)
@@ -204,10 +201,24 @@ int main(int argc, char **argv)
     auto ret = GetLastError();
     if (ret != ERROR_ALREADY_EXISTS && handle != INVALID_HANDLE_VALUE && handle != NULL)
     {
+        auto sleep = 1000;
         while (true)
         {
-            DestroyWindows();
-            Sleep(500);
+            auto windows = GetIDMWindows();
+            if (windows.size() > 0)
+            {
+                sleep = 500;
+                for (auto &win : windows)
+                {
+                    CloseWindowHandle(win.window);
+                }
+            }
+            else
+            {
+                sleep = 1000;
+            }
+
+            Sleep(sleep);
         }
     }
     return 0;
