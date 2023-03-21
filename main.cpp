@@ -178,7 +178,7 @@ vector<WindowObject> GetIDMWindows()
 
         if (endsWith(win.filePath, idm) && alwaysOnTop)
         {
-            if (IsWindowVisible(win.window))
+            if (IsWindowVisible(win.window) && win.title != "Download File Info")
             {
                 idm_windows.push_back(win);
             }
