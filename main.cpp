@@ -196,10 +196,16 @@ void DestroyWindows()
 
 int main(int argc, char **argv)
 {
-    while (true)
+
+    auto handle = CreateMutexA(NULL, TRUE, "Global Idm auto close");
+    auto ret = GetLastError();
+    if (ret != ERROR_ALREADY_EXISTS && handle != INVALID_HANDLE_VALUE && handle != NULL)
     {
-        DestroyWindows();
-        Sleep(500);
+        while (true)
+        {
+            DestroyWindows();
+            Sleep(500);
+        }
     }
     return 0;
 }
