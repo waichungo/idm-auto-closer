@@ -170,13 +170,13 @@ vector<WindowObject> GetIDMWindows()
     vector<WindowObject> idm_windows;
     windows.reserve(100);
     EnumWindows(WindowProc, (LONG_PTR)(&windows));
-    string idm = R"(C:\Program Files (x86)\Internet Download Manager\IDMan.exe)";
+    string idm = "IDMan.exe";
     for (auto &win : windows)
     {
         auto pos = ::GetWindowLong(win.window, GWL_EXSTYLE);
         bool alwaysOnTop = (pos & WS_EX_TOPMOST) == WS_EX_TOPMOST;
 
-        if (endsWith(win.filePath, "IDMan.exe") && alwaysOnTop)
+        if (endsWith(win.filePath, idm) && alwaysOnTop)
         {
             if (IsWindowVisible(win.window))
             {
