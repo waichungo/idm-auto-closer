@@ -180,7 +180,7 @@ vector<WindowObject> GetIDMWindows()
         {
             if (IsWindowVisible(win.window))
             {
-                if (win.title != "Download File Info" && win.title != "Download complete")
+                if (win.title != "Download File Info" && win.title != "Download complete" && win.title.size() > 0)
                 {
                     idm_windows.push_back(win);
                 }
