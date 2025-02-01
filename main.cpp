@@ -3,9 +3,71 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 
 using std::string;
 using std::vector;
+std::string ToLowerCase(const std::string& input) {
+    std::string result = input; // Create a copy of the input string
+
+    // Use std::transform to convert each character to lowercase
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    return result;
+}
+bool StringContains(const std::string &mainString, const std::string &subString)
+{
+    // Use std::string::find to check if subString exists in mainString
+    return mainString.find(subString) != std::string::npos;
+}
+BOOL CALLBACK EnumChildProc(HWND hwndChild, LPARAM lParam)
+{
+    std::string *pTexts = reinterpret_cast<std::string *>(lParam);
+
+    char buffer[256];
+    if (GetWindowTextA(hwndChild, buffer, sizeof(buffer)))
+    {
+        if (strlen(buffer) > 0)
+        {
+            pTexts->append(std::string(buffer) + "\n");
+        }
+    }
+
+    return TRUE; // Continue enumeration
+}
+
+// Function to get all text displayed by a window and its children
+std::string GetAllWindowText(HWND hwnd)
+{
+    std::string texts;
+
+    // Get the text of the main window
+    char buffer[256];
+    if (GetWindowTextA(hwnd, buffer, sizeof(buffer)))
+    {
+        if (strlen(buffer) > 0)
+        {
+            texts.append(std::string(buffer) + "\n");
+        }
+    }
+
+    // Enumerate all child windows and get their text
+    EnumChildWindows(hwnd, EnumChildProc, reinterpret_cast<LPARAM>(&texts));
+
+    return texts;
+}
+bool startsWith(const std::string &str, const std::string &prefix)
+{
+    // Check if the prefix is longer than the string
+    if (prefix.length() > str.length())
+    {
+        return false;
+    }
+
+    // Compare the prefix with the beginning of the string
+    return str.compare(0, prefix.length(), prefix) == 0;
+}
 typedef BOOL(__stdcall *ProcQueryFullProcessImageNameA)(HANDLE hProcess, DWORD dwFlags, LPSTR lpExeName, PDWORD lpdwSize);
 ProcQueryFullProcessImageNameA QueryFullProcessImageNameAFunc = (ProcQueryFullProcessImageNameA)GetProcAddress(GetModuleHandle("Kernel32.dll"), "QueryFullProcessImageNameA");
 class WindowObject
@@ -16,6 +78,7 @@ public:
     std::string className;
     int id;
     HWND window;
+    bool topMost;
 };
 BOOL WindowProc(HWND win, LPARAM param)
 {
@@ -26,6 +89,8 @@ BOOL WindowProc(HWND win, LPARAM param)
     char title[1024] = {0};
     char path[1024] = {0};
     DWORD id = 0;
+    auto pos = ::GetWindowLong(win, GWL_EXSTYLE);
+    bool alwaysOnTop = (pos & WS_EX_TOPMOST) == WS_EX_TOPMOST;
 
     GetClassNameA(win, className, sizeof(className));
     GetWindowTextA(win, title, sizeof(title));
@@ -52,7 +117,7 @@ BOOL WindowProc(HWND win, LPARAM param)
     obj.filePath = path;
     obj.id = (int)id;
     obj.window = win;
-
+    obj.topMost = alwaysOnTop;
     windows->push_back(obj);
 
     return TRUE;
@@ -173,16 +238,38 @@ vector<WindowObject> GetIDMWindows()
     string idm = "IDMan.exe";
     for (auto &win : windows)
     {
-        auto pos = ::GetWindowLong(win.window, GWL_EXSTYLE);
-        bool alwaysOnTop = (pos & WS_EX_TOPMOST) == WS_EX_TOPMOST;
 
-        if (endsWith(win.filePath, idm) && alwaysOnTop)
+        // if (endsWith(win.filePath, idm) && win.topMost)
+        if (endsWith(win.filePath, idm))
         {
             if (IsWindowVisible(win.window))
             {
-                if (win.title != "Download File Info" && win.title != "Download complete" && win.title.size() > 0)
+                // Internet Explorer_Hidden
+                if (win.title != "Internet Explorer_Hidden" && win.title != "Download File Info" && win.title != "Download complete" && !startsWith(win.title, "IDM drop target"))
                 {
-                    idm_windows.push_back(win);
+                    auto text =ToLowerCase( GetAllWindowText(win.window));
+
+                    bool isGood = win.topMost;
+                    if (StringContains(text, "register")&&StringContains(text, "trial"))
+                    {
+                        isGood = true;
+                    }
+                    else if (StringContains(text, "Settings"))
+                    {
+                        isGood = false;
+                    }
+                    else if (win.className == "#32768" && win.topMost)
+                    {
+                        isGood = false;
+                    }
+                    else if (win.title == "IDM" && win.topMost)
+                    {
+                        isGood = false;
+                    }
+                    if (isGood)
+                    {
+                        idm_windows.push_back(win);
+                    }
                 }
             }
         }
@@ -210,7 +297,9 @@ int main(int argc, char **argv)
                 sleep = 500;
                 for (auto &win : windows)
                 {
-                    CloseWindowHandle(win.window);
+                    if (win.title.empty())
+                        CloseWindowHandle(win.window);
+                    Sleep(0);
                 }
             }
             else
