@@ -7,12 +7,14 @@
 
 using std::string;
 using std::vector;
-std::string ToLowerCase(const std::string& input) {
+std::string ToLowerCase(const std::string &input)
+{
     std::string result = input; // Create a copy of the input string
 
     // Use std::transform to convert each character to lowercase
     std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+                   [](unsigned char c)
+                   { return std::tolower(c); });
 
     return result;
 }
@@ -247,10 +249,10 @@ vector<WindowObject> GetIDMWindows()
                 // Internet Explorer_Hidden
                 if (win.title != "Internet Explorer_Hidden" && win.title != "Download File Info" && win.title != "Download complete" && !startsWith(win.title, "IDM drop target"))
                 {
-                    auto text =ToLowerCase( GetAllWindowText(win.window));
+                    auto text = ToLowerCase(GetAllWindowText(win.window));
 
                     bool isGood = win.topMost;
-                    if (StringContains(text, "register")&&StringContains(text, "trial"))
+                    if (StringContains(text, "register") || StringContains(text, "left to use internet download manager"))
                     {
                         isGood = true;
                     }
@@ -278,7 +280,9 @@ vector<WindowObject> GetIDMWindows()
 }
 void CloseWindowHandle(HWND window)
 {
+    ShowWindow(window,SW_HIDE);
     auto res = SendMessageA(window, WM_CLOSE, 0, 0);
+
 }
 
 int main(int argc, char **argv)
@@ -297,8 +301,8 @@ int main(int argc, char **argv)
                 sleep = 500;
                 for (auto &win : windows)
                 {
-                    if (win.title.empty())
-                        CloseWindowHandle(win.window);
+                    // if (win.title.empty())
+                    CloseWindowHandle(win.window);
                     Sleep(0);
                 }
             }
